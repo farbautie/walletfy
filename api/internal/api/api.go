@@ -1,0 +1,38 @@
+package api
+
+import (
+	"log"
+	"os"
+	"os/signal"
+	"syscall"
+
+	"github.com/farbautie/api/config"
+	"github.com/farbautie/api/pkg/database"
+	"github.com/farbautie/api/pkg/server"
+)
+
+func Run(config *config.Config) {
+	log.Printf("Connecting to database")
+	db, err := database.New(config, database.MaxOpenConns(config.PoolSize))
+	if err != nil {
+		log.Fatalf("Error connecting to database: %v", err)
+	}
+	defer db.Close()
+	router := NewRouter()
+	log.Printf("Database connected")
+
+	srv := server.New(router, server.Port(config.Port))
+	interrupt := make(chan os.Signal, 1)
+	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
+
+	select {
+	case s := <-interrupt:
+		log.Printf("Received signal %s, shutting down...", s)
+	case err := <-srv.Notify():
+		log.Printf("Server stopped with error: %s", err)
+	}
+
+	if err := srv.Shutdown(); err != nil {
+		log.Printf("Error shutting down server: %s", err)
+	}
+}

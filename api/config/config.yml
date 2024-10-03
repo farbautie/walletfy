@@ -1,0 +1,9 @@
+app:
+  name: api
+  version: 0.0.1
+
+http:
+  port: "8080"
+
+database:
+  pool_size: 10
