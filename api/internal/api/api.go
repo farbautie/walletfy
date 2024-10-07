@@ -21,7 +21,7 @@ func Run(config *config.Config) {
 	router := NewRouter()
 	log.Printf("Database connected")
 
-	srv := server.New(router, server.Port(config.Port))
+	srv := server.New(LoggingMiddleware(router), server.Port(config.Port))
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
 
