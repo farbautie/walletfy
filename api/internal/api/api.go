@@ -18,7 +18,8 @@ func Run(config *config.Config) {
 		log.Fatalf("Error connecting to database: %v", err)
 	}
 	defer db.Close()
-	router := NewRouter()
+	d :=DefineDependencies(db.Pool)
+	router := NewRouter(d)
 	log.Printf("Database connected")
 
 	srv := server.New(LoggingMiddleware(router), server.Port(config.Port))
