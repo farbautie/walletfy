@@ -3,8 +3,8 @@ package main
 import (
 	"log"
 
-	"github.com/farbautie/api/config"
 	"github.com/farbautie/api/internal/api"
+	"github.com/farbautie/api/internal/config"
 )
 
 func main() {

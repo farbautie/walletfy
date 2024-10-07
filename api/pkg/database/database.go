@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"time"
 
-	"github.com/farbautie/api/config"
+	"github.com/farbautie/api/internal/config"
 	_ "github.com/lib/pq"
 )
 

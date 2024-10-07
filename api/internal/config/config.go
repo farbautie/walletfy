@@ -29,12 +29,15 @@ type Database struct {
 
 func DefineConfig() (*Config, error) {
 	config := &Config{}
-	err := cleanenv.ReadConfig("./config/config.yml", config)
+	err := cleanenv.ReadConfig("./internal/config/config.yml", config)
 	if err != nil {
 		return nil, fmt.Errorf("error reading config file: %v", err)
 	}
 
 	err = cleanenv.ReadEnv(config)
+	if err != nil {
+		return nil, fmt.Errorf("error reading environment variables: %v", err)
+	}
 
 	return config, nil
 }
