@@ -6,7 +6,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/farbautie/api/config"
+	"github.com/farbautie/api/internal/config"
 	"github.com/farbautie/api/pkg/database"
 	"github.com/farbautie/api/pkg/server"
 )
