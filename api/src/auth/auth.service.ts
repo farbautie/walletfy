@@ -1,26 +1,73 @@
 import { Injectable } from '@nestjs/common';
-import { CreateAuthDto } from './dto/create-auth.dto';
-import { UpdateAuthDto } from './dto/update-auth.dto';
+import { CredentialsSignupDto } from './dto/credentials-signup.dto';
+import { CredentialsSigninDto } from './dto/credentials-signin.dto';
+import { PrismaService } from 'src/prisma/prisma.service';
+import { ExceptionsService } from 'src/settings/exceptions';
+import { hashPassword, comparePassword } from 'src/utils/funcs';
+import { User } from '@prisma/client';
 
 @Injectable()
 export class AuthService {
-  create(createAuthDto: CreateAuthDto) {
-    return 'This action adds a new auth';
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly exceptionService: ExceptionsService,
+  ) {}
+
+  async signup(payload: CredentialsSignupDto): Promise<Partial<User>> {
+    try {
+      return await this.prismaService.user.create({
+        data: {
+          email: payload.email,
+          password: await hashPassword(payload.password),
+        },
+        select: {
+          id: true,
+          email: true,
+        },
+      });
+    } catch (error) {
+      if (error.code === 'P2002') {
+        this.exceptionService.conflicException({
+          message: 'The email is already in use',
+          code: 409,
+        });
+      }
+      this.exceptionService.internalServerErrorException({
+        message: error.message,
+        code: 500,
+      });
+    }
   }
 
-  findAll() {
-    return `This action returns all auth`;
-  }
+  async signin(payload: CredentialsSigninDto) {
+    try {
+      const user = await this.prismaService.user.findUniqueOrThrow({
+        where: {
+          email: payload.email,
+        },
+      });
 
-  findOne(id: number) {
-    return `This action returns a #${id} auth`;
-  }
+      const isMatch = await comparePassword(payload.password, user.password);
+      if (!isMatch) {
+        this.exceptionService.badRequestException({
+          message: 'The email or password is incorrect',
+          code: 400,
+        });
+      }
 
-  update(id: number, updateAuthDto: UpdateAuthDto) {
-    return `This action updates a #${id} auth`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} auth`;
+      // TODO: Add JWT
+      return {
+        id: user.id,
+        email: user.email,
+      };
+    } catch (error) {
+      if (error.code === 'P2025') {
+        this.exceptionService.notFoundException({
+          message: 'The email or password is incorrect',
+          code: 400,
+        });
+      }
+      throw error;
+    }
   }
 }
