@@ -5,11 +5,14 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { ExceptionsService } from 'src/settings/exceptions';
 import { hashPassword, comparePassword } from 'src/utils/funcs';
 import { User } from '@prisma/client';
+import { JwtService } from '@nestjs/jwt';
+import { JWT_CONSTANS } from 'src/utils/constans';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly prismaService: PrismaService,
+    private readonly jwtService: JwtService,
     private readonly exceptionService: ExceptionsService,
   ) {}
 
@@ -55,11 +58,7 @@ export class AuthService {
         });
       }
 
-      // TODO: Add JWT
-      return {
-        id: user.id,
-        email: user.email,
-      };
+      return await this.generateTokens(user);
     } catch (error) {
       if (error.code === 'P2025') {
         this.exceptionService.notFoundException({
@@ -69,5 +68,53 @@ export class AuthService {
       }
       throw error;
     }
+  }
+
+  async generateRefreshToken(id: string) {
+    console.log({ id });
+    try {
+      const user = await this.prismaService.user.findUniqueOrThrow({
+        where: {
+          id,
+        },
+      });
+
+      return await this.generateTokens(user);
+    } catch (error) {
+      if (error.code === 'P2025') {
+        this.exceptionService.notFoundException({
+          message: 'The email or password is incorrect',
+          code: 400,
+        });
+      }
+      throw error;
+    }
+  }
+
+  async logout(id: string) {
+    // TODO: implement logout
+    console.log({ id });
+  }
+
+  private async generateTokens(user: User) {
+    const payload = {
+      id: user.id,
+    };
+
+    const [accessToken, refreshToken] = await Promise.all([
+      this.jwtService.signAsync(payload, {
+        secret: JWT_CONSTANS.ACCESS_SECRET,
+        expiresIn: JWT_CONSTANS.ACCESS_EXPIRES_IN,
+      }),
+      this.jwtService.signAsync(payload, {
+        secret: JWT_CONSTANS.REFRESH_SECRET,
+        expiresIn: JWT_CONSTANS.REFRESH_EXPIRES_IN,
+      }),
+    ]);
+
+    return {
+      accessToken,
+      refreshToken,
+    };
   }
 }
