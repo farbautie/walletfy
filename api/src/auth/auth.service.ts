@@ -71,7 +71,6 @@ export class AuthService {
   }
 
   async generateRefreshToken(id: string) {
-    console.log({ id });
     try {
       const user = await this.prismaService.user.findUniqueOrThrow({
         where: {
@@ -92,8 +91,41 @@ export class AuthService {
   }
 
   async logout(id: string) {
-    // TODO: implement logout
-    console.log({ id });
+    await this.prismaService.sessions.delete({
+      where: {
+        id,
+      },
+    });
+
+    return {
+      message: 'Successfully logged out',
+      code: 200,
+    };
+  }
+
+  private async generateSession({ accessToken, refreshToken, user }: any) {
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + 8);
+
+    await this.prismaService.sessions.create({
+      data: {
+        user_id: user.id,
+        expires: expiresAt,
+        access_token: accessToken,
+        refresh_token: refreshToken,
+      },
+    });
+  }
+
+  async checkActiveSession(user: User) {
+    return await this.prismaService.sessions.findFirst({
+      where: {
+        user_id: user.id,
+        expires: {
+          gt: new Date(),
+        },
+      },
+    });
   }
 
   private async generateTokens(user: User) {
@@ -111,7 +143,11 @@ export class AuthService {
         expiresIn: JWT_CONSTANS.REFRESH_EXPIRES_IN,
       }),
     ]);
-
+    await this.generateSession({
+      user,
+      accessToken,
+      refreshToken,
+    });
     return {
       accessToken,
       refreshToken,

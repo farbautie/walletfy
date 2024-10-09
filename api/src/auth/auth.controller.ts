@@ -29,15 +29,16 @@ export class AuthController {
   }
 
   @UseGuards(AccessGuard)
+  @ApiBearerAuth()
   @Post('logout')
-  async logout(@Request() { user }: any) {
-    return await this.authService.logout(user.id);
+  async logout(@Request() { session }: any) {
+    return await this.authService.logout(session.sessionId);
   }
 
   @UseGuards(RefreshGuard)
   @ApiBearerAuth()
   @Get('/refresh')
-  async refresh(@Request() { user }: any) {
-    return await this.authService.generateRefreshToken(user.id);
+  async refresh(@Request() { session }: any) {
+    return await this.authService.generateRefreshToken(session.id);
   }
 }
